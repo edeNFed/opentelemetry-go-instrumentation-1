@@ -107,6 +107,21 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 	return addr, nil
 }
 
+func (a *Analyzer) AllocateMemory(target *TargetDetails) (*AllocationDetails, error) {
+	addr, err := a.remoteMmap(target.PID, mapSize)
+	if err != nil {
+		log.Logger.Error(err, "Failed to mmap")
+		return nil, err
+	}
+
+	log.Logger.V(0).Info("mmaped remote memory", "start_addr", fmt.Sprintf("%X", addr),
+		"end_addr", fmt.Sprintf("%X", addr+mapSize))
+	return &AllocationDetails{
+		StartAddr: addr,
+		EndAddr:   addr + mapSize,
+	}, nil
+}
+
 // Analyze returns the target details for an actively running process.
 func (a *Analyzer) Analyze(pid int, relevantFuncs map[string]interface{}) (*TargetDetails, error) {
 	result := &TargetDetails{
@@ -131,22 +146,6 @@ func (a *Analyzer) Analyze(pid int, relevantFuncs map[string]interface{}) (*Targ
 	result.GoVersion = goVersion
 	result.Libraries = modules
 
-	addr, err := a.remoteMmap(pid, mapSize)
-	if err != nil {
-		log.Logger.Error(err, "Failed to mmap")
-		return nil, err
-	}
-	log.Logger.V(0).Info("mmaped remote memory", "start_addr", fmt.Sprintf("%X", addr),
-		"end_addr", fmt.Sprintf("%X", addr+mapSize))
-
-	result.AllocationDetails = &AllocationDetails{
-		StartAddr: addr,
-		EndAddr:   addr + mapSize,
-	}
-
-	if err != nil {
-		return nil, err
-	}
 	symbols, err := elfF.Symbols()
 	if err != nil {
 		return nil, err

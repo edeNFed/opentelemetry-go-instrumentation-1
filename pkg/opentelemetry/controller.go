@@ -104,6 +104,11 @@ func NewController() (*Controller, error) {
 		return nil, fmt.Errorf("%s env var must be set", otelServiceNameEnvVar)
 	}
 
+	return NewControllerWithServiceName(serviceName)
+}
+
+// NewControllerWithServiceName returns a new initialized [Controller] with the given service name.
+func NewControllerWithServiceName(serviceName string) (*Controller, error) {
 	ctx := context.Background()
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
