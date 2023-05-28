@@ -53,7 +53,7 @@ var (
 
 // Controller handles OpenTelemetry telemetry generation for events.
 type Controller struct {
-	tracerProvider trace.TracerProvider
+	tracerProvider *sdktrace.TracerProvider
 	tracersMap     map[string]trace.Tracer
 	bootTime       int64
 }
@@ -149,6 +149,10 @@ func NewControllerWithServiceName(serviceName string) (*Controller, error) {
 		tracersMap:     make(map[string]trace.Tracer),
 		bootTime:       bt,
 	}, nil
+}
+
+func (c *Controller) Close() {
+	c.tracerProvider.Shutdown(context.Background())
 }
 
 func estimateBootTimeOffset() (bootTimeOffset int64, err error) {

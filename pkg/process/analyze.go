@@ -107,6 +107,7 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 	return addr, nil
 }
 
+// AllocateMemory allocates memory in the target process.
 func (a *Analyzer) AllocateMemory(target *TargetDetails) (*AllocationDetails, error) {
 	addr, err := a.remoteMmap(target.PID, mapSize)
 	if err != nil {
