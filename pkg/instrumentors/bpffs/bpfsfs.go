@@ -31,16 +31,34 @@ func PathForTargetApplication(target *process.TargetDetails) string {
 }
 
 func MountPathForTargetApplication(target *process.TargetDetails) error {
-	path := PathForTargetApplication(target)
-	_, err := os.Stat(path)
+	// is bpf already mounted?
+	_, err := os.Stat(bpfFsPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
+
+		// Directory does not exist, create it and mount
+		if err := os.MkdirAll(bpfFsPath, 0755); err != nil {
+			return err
+		}
+
+		if err := unix.Mount(bpfFsPath, bpfFsPath, "bpf", 0, ""); err != nil {
+			return err
+		}
+	}
+
+	path := PathForTargetApplication(target)
+	_, err = os.Stat(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
 	}
 
-	return unix.Mount(path, path, "bpf", 0, "")
+	return nil
 }
