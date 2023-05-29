@@ -14,5 +14,15 @@
 
 package bpffs
 
+import (
+	"fmt"
+
+	"go.opentelemetry.io/auto/pkg/process"
+)
+
 // BPFFsPath is the system path to the BPF file-system.
 const BPFFsPath = "/sys/fs/bpf"
+
+func PathForTargetApplication(target *process.TargetDetails) string {
+	return fmt.Sprintf("%s/%s", BPFFsPath, target.PID)
+}
