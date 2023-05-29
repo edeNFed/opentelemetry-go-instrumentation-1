@@ -24,5 +24,5 @@ import (
 const BPFFsPath = "/sys/fs/bpf"
 
 func PathForTargetApplication(target *process.TargetDetails) string {
-	return fmt.Sprintf("%s/%s", BPFFsPath, target.PID)
+	return fmt.Sprintf("%s/%d", BPFFsPath, target.PID)
 }
