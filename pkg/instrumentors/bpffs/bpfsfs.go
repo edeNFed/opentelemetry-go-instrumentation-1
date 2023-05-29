@@ -30,8 +30,7 @@ func PathForTargetApplication(target *process.TargetDetails) string {
 	return fmt.Sprintf("%s/%d", bpfFsPath, target.PID)
 }
 
-func Mount() error {
-	// is bpf already mounted?
+func Mount(target *process.TargetDetails) error {
 	_, err := os.Stat(bpfFsPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -44,5 +43,10 @@ func Mount() error {
 		}
 	}
 
-	return unix.Mount(bpfFsPath, bpfFsPath, "bpf", 0, "")
+	err = unix.Mount(bpfFsPath, bpfFsPath, "bpf", 0, "")
+	if err != nil {
+		return err
+	}
+
+	return os.MkdirAll(PathForTargetApplication(target), 0755)
 }
