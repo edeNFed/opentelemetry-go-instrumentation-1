@@ -38,10 +38,10 @@ func MountPathForTargetApplication(target *process.TargetDetails) error {
 			return err
 		}
 
-		// Directory does not exist, create it and mount
-		if err := os.MkdirAll(bpfFsPath, 0755); err != nil {
-			return err
-		}
+		//// Directory does not exist, create it and mount
+		//if err := os.MkdirAll(bpfFsPath, 0755); err != nil {
+		//	return err
+		//}
 
 		if err := unix.Mount(bpfFsPath, bpfFsPath, "bpf", 0, ""); err != nil {
 			return err
