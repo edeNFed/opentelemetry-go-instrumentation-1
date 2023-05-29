@@ -16,13 +16,31 @@ package bpffs
 
 import (
 	"fmt"
+	"os"
+
+	"golang.org/x/sys/unix"
 
 	"go.opentelemetry.io/auto/pkg/process"
 )
 
 // BPFFsPath is the system path to the BPF file-system.
-const BPFFsPath = "/sys/fs/bpf"
+const bpfFsPath = "/sys/fs/bpf"
 
 func PathForTargetApplication(target *process.TargetDetails) string {
-	return fmt.Sprintf("%s/%d", BPFFsPath, target.PID)
+	return fmt.Sprintf("%s/%d", bpfFsPath, target.PID)
+}
+
+func MountPathForTargetApplication(target *process.TargetDetails) error {
+	path := PathForTargetApplication(target)
+	_, err := os.Stat(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
+	}
+
+	return unix.Mount(path, path, "bpf", 0, "")
 }
