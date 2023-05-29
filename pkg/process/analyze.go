@@ -107,6 +107,22 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 	return addr, nil
 }
 
+// AllocateMemory allocates memory in the target process.
+func (a *Analyzer) AllocateMemory(target *TargetDetails) (*AllocationDetails, error) {
+	addr, err := a.remoteMmap(target.PID, mapSize)
+	if err != nil {
+		log.Logger.Error(err, "Failed to mmap")
+		return nil, err
+	}
+
+	log.Logger.V(0).Info("mmaped remote memory", "start_addr", fmt.Sprintf("%X", addr),
+		"end_addr", fmt.Sprintf("%X", addr+mapSize))
+	return &AllocationDetails{
+		StartAddr: addr,
+		EndAddr:   addr + mapSize,
+	}, nil
+}
+
 // Analyze returns the target details for an actively running process.
 func (a *Analyzer) Analyze(pid int, relevantFuncs map[string]interface{}) (*TargetDetails, error) {
 	result := &TargetDetails{
@@ -131,53 +147,13 @@ func (a *Analyzer) Analyze(pid int, relevantFuncs map[string]interface{}) (*Targ
 	result.GoVersion = goVersion
 	result.Libraries = modules
 
-	addr, err := a.remoteMmap(pid, mapSize)
+	funcs, err := findFunctions(elfF, relevantFuncs)
 	if err != nil {
-		log.Logger.Error(err, "Failed to mmap")
-		return nil, err
-	}
-	log.Logger.V(0).Info("mmaped remote memory", "start_addr", fmt.Sprintf("%X", addr),
-		"end_addr", fmt.Sprintf("%X", addr+mapSize))
-
-	result.AllocationDetails = &AllocationDetails{
-		StartAddr: addr,
-		EndAddr:   addr + mapSize,
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	symbols, err := elfF.Symbols()
-	if err != nil {
+		log.Logger.Error(err, "Failed to find functions")
 		return nil, err
 	}
 
-	for _, f := range symbols {
-		if _, exists := relevantFuncs[f.Name]; exists {
-			offset, err := getFuncOffset(elfF, f)
-			if err != nil {
-				return nil, err
-			}
-
-			returns, err := findFuncReturns(elfF, f, offset)
-			if err != nil {
-				log.Logger.V(1).Info("can't find function offset. Skipping", "function", f.Name)
-				continue
-			}
-
-			log.Logger.V(0).Info("found relevant function for instrumentation",
-				"function", f.Name,
-				"start", offset,
-				"returns", returns)
-			function := &Func{
-				Name:          f.Name,
-				Offset:        offset,
-				ReturnOffsets: returns,
-			}
-
-			result.Functions = append(result.Functions, function)
-		}
-	}
+	result.Functions = funcs
 	if len(result.Functions) == 0 {
 		return nil, errors.New("could not find function offsets for instrumenter")
 	}
@@ -185,62 +161,15 @@ func (a *Analyzer) Analyze(pid int, relevantFuncs map[string]interface{}) (*Targ
 	return result, nil
 }
 
-func getFuncOffset(f *elf.File, symbol elf.Symbol) (uint64, error) {
-	var sections []*elf.Section
-
-	for i := range f.Sections {
-		if f.Sections[i].Flags == elf.SHF_ALLOC+elf.SHF_EXECINSTR {
-			sections = append(sections, f.Sections[i])
-		}
-	}
-
-	if len(sections) == 0 {
-		return 0, fmt.Errorf("function %q not found in file", symbol)
-	}
-
-	var execSection *elf.Section
-	for m := range sections {
-		sectionStart := sections[m].Addr
-		sectionEnd := sectionStart + sections[m].Size
-		if symbol.Value >= sectionStart && symbol.Value < sectionEnd {
-			execSection = sections[m]
-			break
-		}
-	}
-
-	if execSection == nil {
-		return 0, errors.New("could not find symbol in executable sections of binary")
-	}
-
-	return uint64(symbol.Value - execSection.Addr + execSection.Offset), nil
-}
-
-func findFuncReturns(elfFile *elf.File, sym elf.Symbol, functionOffset uint64) ([]uint64, error) {
-	textSection := elfFile.Section(".text")
-	if textSection == nil {
-		return nil, errors.New("could not find .text section in binary")
-	}
-
-	lowPC := sym.Value
-	highPC := lowPC + sym.Size
-	offset := lowPC - textSection.Addr
-	buf := make([]byte, int(highPC-lowPC))
-
-	readBytes, err := textSection.ReadAt(buf, int64(offset))
+func findFunctions(elfF *elf.File, relevantFuncs map[string]interface{}) ([]*Func, error) {
+	result, err := FindFunctionsUnStripped(elfF, relevantFuncs)
 	if err != nil {
-		return nil, fmt.Errorf("could not read text section: %w", err)
-	}
-	data := buf[:readBytes]
-	instructionIndices, err := findRetInstructions(data)
-	if err != nil {
-		return nil, fmt.Errorf("error while scanning instructions: %w", err)
-	}
-
-	// Add the function lowPC to each index to obtain the actual locations
-	newLocations := make([]uint64, len(instructionIndices))
-	for i, instructionIndex := range instructionIndices {
-		newLocations[i] = instructionIndex + functionOffset
+		if errors.Is(err, elf.ErrNoSymbols) {
+			log.Logger.V(0).Info("No symbols found in binary, trying to find functions using .gosymtab")
+			return FindFunctionsStripped(elfF, relevantFuncs)
+		}
+		return nil, err
 	}
 
-	return newLocations, nil
+	return result, nil
 }
