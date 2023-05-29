@@ -38,7 +38,7 @@ func (a *Allocator) Load(ctx *context.InstrumentorContext) error {
 	}
 	logger.V(0).Info("Loading allocator")
 
-	err := bpffs.MountPathForTargetApplication(ctx.TargetDetails)
+	err := bpffs.Mount()
 	if err != nil {
 		return err
 	}
