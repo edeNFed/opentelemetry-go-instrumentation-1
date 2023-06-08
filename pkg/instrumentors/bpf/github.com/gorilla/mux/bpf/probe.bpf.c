@@ -15,6 +15,7 @@
 #include "arguments.h"
 #include "span_context.h"
 #include "go_context.h"
+#include "go_types.h"
 
 char __license[] SEC("license") = "Dual MIT/GPL";
 
@@ -28,6 +29,7 @@ struct http_request_t {
     char method[METHOD_MAX_LEN];
     char path[PATH_MAX_LEN];
     struct span_context sc;
+    struct span_context psc;
 };
 
 struct {
@@ -80,11 +82,24 @@ int uprobe_GorillaMux_ServeHTTP(struct pt_regs *ctx) {
 
     // Get key
     void *req_ctx_ptr = 0;
-    bpf_probe_read(&req_ctx_ptr, sizeof(req_ctx_ptr), (void *)(req_ptr + ctx_ptr_pos));
-    void *key = get_consistent_key(ctx, (void *)(req_ptr + ctx_ptr_pos));
+    void *ctx_address = get_go_interface_instance(req_ptr + ctx_ptr_pos);
+    bpf_probe_read(&req_ctx_ptr, sizeof(req_ctx_ptr), ctx_address);
+    void *key = get_consistent_key(ctx, ctx_address);
+
+    // Propagate context
+    struct span_context *parent_ctx = get_parent_span_context(ctx_address);
+    if (parent_ctx != NULL)
+    {
+        httpReq.psc = *parent_ctx;
+        copy_byte_arrays(httpReq.psc.TraceID, httpReq.sc.TraceID, TRACE_ID_SIZE);
+        generate_random_bytes(httpReq.sc.SpanID, SPAN_ID_SIZE);
+    }
+    else
+    {
+        httpReq.sc = generate_span_context();
+    }
 
     // Write event
-    httpReq.sc = generate_span_context();
     bpf_map_update_elem(&http_events, &key, &httpReq, 0);
     track_running_span(req_ctx_ptr, &httpReq.sc);
     return 0;
@@ -96,7 +111,8 @@ int uprobe_GorillaMux_ServeHTTP_Returns(struct pt_regs *ctx) {
     void* req_ptr = get_argument(ctx, request_pos);
 
     // Get key
-    void *key = get_consistent_key(ctx, (void *)(req_ptr + ctx_ptr_pos));
+    void *ctx_address = get_go_interface_instance(req_ptr + ctx_ptr_pos);
+    void *key = get_consistent_key(ctx, ctx_address);
 
     void *httpReq_ptr = bpf_map_lookup_elem(&http_events, &key);
     struct http_request_t httpReq = {};

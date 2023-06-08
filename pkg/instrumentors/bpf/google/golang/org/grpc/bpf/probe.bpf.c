@@ -22,6 +22,8 @@ char __license[] SEC("license") = "Dual MIT/GPL";
 #define MAX_SIZE 50
 #define MAX_CONCURRENT 50
 #define MAX_HEADERS_BUFF_SIZE 500
+#define MAX_HEADERS 10
+#define MAX_HEADER_SIZE 100
 
 struct grpc_request_t
 {
@@ -113,9 +115,7 @@ int uprobe_ClientConn_Invoke(struct pt_regs *ctx)
 
     // Get parent if exists
     void *context_ptr = get_argument(ctx, context_pos);
-    void *context_ptr_val = 0;
-    bpf_probe_read(&context_ptr_val, sizeof(context_ptr_val), context_ptr);
-    struct span_context *parent_span_ctx = get_parent_span_context(context_ptr_val);
+    struct span_context *parent_span_ctx = get_parent_span_context(context_ptr);
     if (parent_span_ctx != NULL)
     {
         bpf_probe_read(&grpcReq.psc, sizeof(grpcReq.psc), parent_span_ctx);
@@ -132,7 +132,7 @@ int uprobe_ClientConn_Invoke(struct pt_regs *ctx)
 
     // Write event
     bpf_map_update_elem(&grpc_events, &key, &grpcReq, 0);
-    track_running_span(context_ptr_val, &grpcReq.sc);
+    track_running_span(context_ptr, &grpcReq.sc);
     return 0;
 }
 
@@ -193,6 +193,47 @@ int uprobe_LoopyWriter_HeaderHandler(struct pt_regs *ctx)
     struct hpack_header_field hf = {};
     hf.name = key_str;
     hf.value = val_str;
+
+    if (slice.len < slice.cap)
+    {
+        // Get buffer
+        s32 index = 0;
+        void *map_buff = bpf_map_lookup_elem(&headers_buff_map, &index);
+        if (!map_buff)
+        {
+            return 0;
+        }
+
+        for (s32 i = 0; i < MAX_HEADERS; i++)
+        {
+            if (i >= slice.len)
+            {
+                break;
+            }
+
+            struct hpack_header_field hf = {};
+            void *hf_addr = (void *)(slice.array + (i * sizeof(hf)));
+            bpf_probe_read(&hf, sizeof(hf), hf_addr);
+
+            // Clone name string
+            char *name_userspace_addr = hf.name.str;
+            s64 name_size = (hf.name.len > MAX_HEADER_SIZE) ? MAX_HEADER_SIZE : (hf.name.len < 1 ? 1 : hf.name.len);
+            bpf_probe_read(map_buff, name_size, name_userspace_addr);
+            struct go_string name_str = write_user_go_string(map_buff, name_size);
+
+           // Clone value string
+            char *value_userspace_addr = hf.value.str;
+            s64 value_size = (hf.value.len > MAX_HEADER_SIZE) ? MAX_HEADER_SIZE : (hf.value.len < 1 ? 1 : hf.value.len);
+            bpf_probe_read(map_buff, value_size, value_userspace_addr);
+            struct go_string value_str = write_user_go_string(map_buff, value_size);
+
+            // Update userspace pointer
+            hf.name = name_str;
+            hf.value = value_str;
+            long result = bpf_probe_write_user(hf_addr, &hf, sizeof(hf));
+        }
+    }
+
     append_item_to_slice(&slice, &hf, sizeof(hf), &slice_user_ptr, &headers_buff_map);
     return 0;
 }
@@ -202,14 +243,10 @@ SEC("uprobe/http2Client_NewStream")
 int uprobe_http2Client_NewStream(struct pt_regs *ctx)
 {
     void *context_ptr = get_argument(ctx, 3);
-    void *context_ptr_val = 0;
-    bpf_probe_read(&context_ptr_val, sizeof(context_ptr_val), context_ptr);
-
     void *httpclient_ptr = get_argument(ctx, 1);
     u32 nextid = 0;
     bpf_probe_read(&nextid, sizeof(nextid), (void *)(httpclient_ptr + (httpclient_nextid_pos)));
-
-    struct span_context *current_span_context = get_parent_span_context(context_ptr_val);
+    struct span_context *current_span_context = get_parent_span_context(context_ptr);
     if (current_span_context != NULL) {
         bpf_map_update_elem(&streamid_to_span_contexts, &nextid, current_span_context, 0);
     }

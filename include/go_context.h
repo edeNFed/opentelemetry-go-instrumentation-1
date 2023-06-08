@@ -38,6 +38,11 @@ static __always_inline void *get_parent_go_context(void *ctx, void *map) {
     void *data = ctx;
     for (int i = 0; i < MAX_DISTANCE; i++)
     {
+        if (data == NULL)
+        {
+            break;
+        }
+
         void *found_in_map = bpf_map_lookup_elem(map, &data);
         if (found_in_map != NULL)
         {
@@ -72,6 +77,9 @@ static __always_inline struct span_context *get_parent_span_context(void *ctx) {
 static __always_inline void track_running_span(void *contextContext, struct span_context *sc) {
     bpf_map_update_elem(&tracked_spans, &contextContext, sc, BPF_ANY);
     bpf_map_update_elem(&tracked_spans_by_sc, sc, &contextContext, BPF_ANY);
+
+    char val[SPAN_CONTEXT_STRING_SIZE];
+    span_context_to_w3c_string(sc, val);
 }
 
 static __always_inline void stop_tracking_span(struct span_context *sc) {
@@ -81,6 +89,6 @@ static __always_inline void stop_tracking_span(struct span_context *sc) {
         return;
     }
 
-    bpf_map_delete_elem(&tracked_spans, &ctx);
+    bpf_map_delete_elem(&tracked_spans, ctx);
     bpf_map_delete_elem(&tracked_spans_by_sc, sc);
 }
