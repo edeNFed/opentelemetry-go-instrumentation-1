@@ -54,7 +54,6 @@ static __always_inline void *get_parent_go_context(void *ctx, void *map) {
         bpf_probe_read(&data, sizeof(data), data + 8);
     }
 
-    bpf_printk("context %lx not found in context map", ctx);
     return NULL;
 }
 
