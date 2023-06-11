@@ -48,5 +48,5 @@ func Mount(target *process.TargetDetails) error {
 		return err
 	}
 
-	return os.MkdirAll(PathForTargetApplication(target), 0755)
+	return os.Mkdir(PathForTargetApplication(target), 0755)
 }
