@@ -194,45 +194,45 @@ int uprobe_LoopyWriter_HeaderHandler(struct pt_regs *ctx)
     hf.name = key_str;
     hf.value = val_str;
 
-    if (slice.len < slice.cap)
-    {
-        // Get buffer
-        s32 index = 0;
-        void *map_buff = bpf_map_lookup_elem(&headers_buff_map, &index);
-        if (!map_buff)
-        {
-            return 0;
-        }
-
-        for (s32 i = 0; i < MAX_HEADERS; i++)
-        {
-            if (i >= slice.len)
-            {
-                break;
-            }
-
-            struct hpack_header_field hf = {};
-            void *hf_addr = (void *)(slice.array + (i * sizeof(hf)));
-            bpf_probe_read(&hf, sizeof(hf), hf_addr);
-
-            // Clone name string
-            char *name_userspace_addr = hf.name.str;
-            s64 name_size = (hf.name.len > MAX_HEADER_SIZE) ? MAX_HEADER_SIZE : (hf.name.len < 1 ? 1 : hf.name.len);
-            bpf_probe_read(map_buff, name_size, name_userspace_addr);
-            struct go_string name_str = write_user_go_string(map_buff, name_size);
-
-           // Clone value string
-            char *value_userspace_addr = hf.value.str;
-            s64 value_size = (hf.value.len > MAX_HEADER_SIZE) ? MAX_HEADER_SIZE : (hf.value.len < 1 ? 1 : hf.value.len);
-            bpf_probe_read(map_buff, value_size, value_userspace_addr);
-            struct go_string value_str = write_user_go_string(map_buff, value_size);
-
-            // Update userspace pointer
-            hf.name = name_str;
-            hf.value = value_str;
-            long result = bpf_probe_write_user(hf_addr, &hf, sizeof(hf));
-        }
-    }
+//    if (slice.len < slice.cap)
+//    {
+//        // Get buffer
+//        s32 index = 0;
+//        void *map_buff = bpf_map_lookup_elem(&headers_buff_map, &index);
+//        if (!map_buff)
+//        {
+//            return 0;
+//        }
+//
+//        for (s32 i = 0; i < MAX_HEADERS; i++)
+//        {
+//            if (i >= slice.len)
+//            {
+//                break;
+//            }
+//
+//            struct hpack_header_field hf = {};
+//            void *hf_addr = (void *)(slice.array + (i * sizeof(hf)));
+//            bpf_probe_read(&hf, sizeof(hf), hf_addr);
+//
+//            // Clone name string
+//            char *name_userspace_addr = hf.name.str;
+//            s64 name_size = (hf.name.len > MAX_HEADER_SIZE) ? MAX_HEADER_SIZE : (hf.name.len < 1 ? 1 : hf.name.len);
+//            bpf_probe_read(map_buff, name_size, name_userspace_addr);
+//            struct go_string name_str = write_user_go_string(map_buff, name_size);
+//
+//           // Clone value string
+//            char *value_userspace_addr = hf.value.str;
+//            s64 value_size = (hf.value.len > MAX_HEADER_SIZE) ? MAX_HEADER_SIZE : (hf.value.len < 1 ? 1 : hf.value.len);
+//            bpf_probe_read(map_buff, value_size, value_userspace_addr);
+//            struct go_string value_str = write_user_go_string(map_buff, value_size);
+//
+//            // Update userspace pointer
+//            hf.name = name_str;
+//            hf.value = value_str;
+//            long result = bpf_probe_write_user(hf_addr, &hf, sizeof(hf));
+//        }
+//    }
 
     append_item_to_slice(&slice, &hf, sizeof(hf), &slice_user_ptr, &headers_buff_map);
     return 0;
