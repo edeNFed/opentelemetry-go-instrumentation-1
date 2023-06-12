@@ -62,10 +62,14 @@ static __always_inline void* get_go_interface_instance(void *iface)
 static __always_inline struct go_string write_user_go_string(char *str, u32 len)
 {
     // Copy chars to userspace
+    struct go_string new_string = {};
     char *addr = write_target_data((void *)str, len);
+    if (addr == NULL) {
+        bpf_printk("write_user_go_string: failed to copy string to userspace");
+        return new_string;
+    }
 
     // Build string struct in kernel space
-    struct go_string new_string = {};
     new_string.str = addr;
     new_string.len = len;
 
@@ -116,6 +120,11 @@ static __always_inline void append_item_to_slice(struct go_slice *slice, void *n
         }
 
         void *new_array = write_target_data(map_buff, new_array_size);
+        if (new_array == NULL)
+        {
+            bpf_printk("append_item_to_slice: failed to copy new array to userspace");
+            return;
+        }
 
         // Update array
         slice->array = new_array;
