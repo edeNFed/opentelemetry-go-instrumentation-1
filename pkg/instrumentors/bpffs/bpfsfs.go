@@ -58,3 +58,7 @@ func isBPFFSMounted() bool {
 
 	return stat.Type == unix.BPF_FS_MAGIC
 }
+
+func Cleanup(target *process.TargetDetails) error {
+	return os.RemoveAll(PathForTargetApplication(target))
+}
