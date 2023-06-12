@@ -119,7 +119,8 @@ static __always_inline void *write_target_data(void *data, s32 size)
     }
     else
     {
-        bpf_printk("failed to write to userspace, error code: %d, addr: %lx, size: %d", success, target, size);
+        u64 distance = end - start;
+        bpf_printk("failed to write to userspace, error code: %d, addr: %lx, distance: %d", success, target, distance);
         return NULL;
     }
 }
