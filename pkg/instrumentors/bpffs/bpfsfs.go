@@ -41,11 +41,11 @@ func Mount(target *process.TargetDetails) error {
 		if err := os.MkdirAll(bpfFsPath, 0755); err != nil {
 			return err
 		}
-	}
 
-	err = unix.Mount(bpfFsPath, bpfFsPath, "bpf", 0, "")
-	if err != nil {
-		return err
+		err = unix.Mount(bpfFsPath, bpfFsPath, "bpf", 0, "")
+		if err != nil {
+			return err
+		}
 	}
 
 	return os.Mkdir(PathForTargetApplication(target), 0755)
