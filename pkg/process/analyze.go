@@ -104,6 +104,12 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 		return 0, err
 	}
 
+	err = program.Madvise(addr, mapSize)
+	if err != nil {
+		log.Logger.Error(err, "Failed to madvise", "pid", pid)
+		return 0, err
+	}
+
 	return addr, nil
 }
 

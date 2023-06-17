@@ -132,7 +132,7 @@ int uprobe_server_handleStream_Returns(struct pt_regs *ctx)
     grpcReq.end_time = bpf_ktime_get_ns();
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &grpcReq, sizeof(grpcReq));
     bpf_map_delete_elem(&grpc_events, &key);
-    stop_tracking_span(&grpcReq.sc);
+    stop_tracking_span(&grpcReq.sc, true);
     return 0;
 }
 

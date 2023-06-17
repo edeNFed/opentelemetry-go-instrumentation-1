@@ -81,13 +81,16 @@ static __always_inline void track_running_span(void *contextContext, struct span
     span_context_to_w3c_string(sc, val);
 }
 
-static __always_inline void stop_tracking_span(struct span_context *sc) {
-    void *ctx = bpf_map_lookup_elem(&tracked_spans_by_sc, sc);
-    if (ctx == NULL)
+static __always_inline void stop_tracking_span(struct span_context *sc, bool isRoot) {
+    if (isRoot)
     {
-        return;
-    }
+        void *ctx = bpf_map_lookup_elem(&tracked_spans_by_sc, sc);
+        if (ctx == NULL)
+        {
+            return;
+        }
 
-    bpf_map_delete_elem(&tracked_spans, ctx);
+        bpf_map_delete_elem(&tracked_spans, ctx);
+    }
     bpf_map_delete_elem(&tracked_spans_by_sc, sc);
 }

@@ -172,12 +172,21 @@ static __always_inline struct span_context *extract_context_from_req_headers(voi
 SEC("uprobe/ServerMux_ServeHTTP")
 int uprobe_ServerMux_ServeHTTP(struct pt_regs *ctx)
 {
+    // Get key
     u64 request_pos = 4;
+    void *req_ptr = get_argument(ctx, request_pos);
+    void *req_ctx_ptr = 0;
+    void *ctx_address = get_go_interface_instance(req_ptr + ctx_ptr_pos);
+    bpf_probe_read(&req_ctx_ptr, sizeof(req_ctx_ptr), ctx_address);
+    void *key = get_consistent_key(ctx, ctx_address);
+    void *httpReq_ptr = bpf_map_lookup_elem(&http_events, &key);
+    if (httpReq_ptr != NULL)
+    {
+        return 0;
+    }
+
     struct http_request_t httpReq = {};
     httpReq.start_time = bpf_ktime_get_ns();
-
-    // Get request struct
-    void *req_ptr = get_argument(ctx, request_pos);
 
     // Get method from request
     void *method_ptr = 0;
@@ -198,12 +207,6 @@ int uprobe_ServerMux_ServeHTTP(struct pt_regs *ctx)
     u64 path_size = sizeof(httpReq.path);
     path_size = path_size < path_len ? path_size : path_len;
     bpf_probe_read(&httpReq.path, path_size, path_ptr);
-
-    // Get key
-    void *req_ctx_ptr = 0;
-    void *ctx_address = get_go_interface_instance(req_ptr + ctx_ptr_pos);
-    bpf_probe_read(&req_ctx_ptr, sizeof(req_ctx_ptr), ctx_address);
-    void *key = get_consistent_key(ctx, ctx_address);
 
     // Propagate context
     struct span_context *parent_ctx = extract_context_from_req_headers(req_ptr + headers_ptr_pos);
@@ -241,13 +244,17 @@ int uprobe_ServerMux_ServeHTTP_Returns(struct pt_regs *ctx)
     void *req_ptr = get_argument(ctx, request_pos);
     void *ctx_address = get_go_interface_instance(req_ptr + ctx_ptr_pos);
     void *key = get_consistent_key(ctx, ctx_address);
-
     void *httpReq_ptr = bpf_map_lookup_elem(&http_events, &key);
+    if (httpReq_ptr == NULL)
+    {
+        return 0;
+    }
+
     struct http_request_t httpReq = {};
     bpf_probe_read(&httpReq, sizeof(httpReq), httpReq_ptr);
     httpReq.end_time = bpf_ktime_get_ns();
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &httpReq, sizeof(httpReq));
     bpf_map_delete_elem(&http_events, &key);
-    stop_tracking_span(&httpReq.sc);
+    stop_tracking_span(&httpReq.sc, true);
     return 0;
 }

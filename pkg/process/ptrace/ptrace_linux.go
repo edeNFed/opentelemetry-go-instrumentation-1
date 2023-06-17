@@ -208,5 +208,11 @@ func (p *TracedProgram) Step() error {
 
 // Mmap runs mmap syscall.
 func (p *TracedProgram) Mmap(length uint64, fd uint64) (uint64, error) {
-	return p.Syscall(syscall.SYS_MMAP, 0, length, syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC, syscall.MAP_ANON|syscall.MAP_PRIVATE|syscall.MAP_POPULATE, fd, 0)
+	return p.Syscall(syscall.SYS_MMAP, 0, length, syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC, syscall.MAP_ANON|syscall.MAP_PRIVATE|syscall.MAP_POPULATE|syscall.MAP_LOCKED, fd, 0)
+}
+
+// Madvise runs madvise syscall.
+func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
+	_, err := p.Syscall(syscall.SYS_MADVISE, addr, length, syscall.MADV_WILLNEED, 0, 0, 0)
+	return err
 }

@@ -104,6 +104,6 @@ int uprobe_GinEngine_ServeHTTP_Returns(struct pt_regs *ctx) {
     httpReq.end_time = bpf_ktime_get_ns();
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &httpReq, sizeof(httpReq));
     bpf_map_delete_elem(&http_events, &key);
-    stop_tracking_span(&httpReq.sc);
+    stop_tracking_span(&httpReq.sc, true);
     return 0;
 }
