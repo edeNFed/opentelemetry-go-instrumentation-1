@@ -182,7 +182,7 @@ int uprobe_LoopyWriter_HeaderHandler(struct pt_regs *ctx)
     struct span_context current_span_context = {};
     bpf_probe_read(&current_span_context, sizeof(current_span_context), sc_ptr);
 
-    char tp_key[16] = "traceparentedenn";
+    char tp_key[11] = "traceparent";
     struct go_string key_str = write_user_go_string(tp_key, sizeof(tp_key));
     if (key_str.len == 0) {
         bpf_printk("write failed, aborting ebpf probe");

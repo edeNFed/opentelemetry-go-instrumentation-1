@@ -16,7 +16,7 @@
 
 #define MAX_ENTRIES 50
 #define MAX_BUFFER_SIZE 1024
-#define MIN_BUFFER_SIZE 1
+#define MIN_BUFFER_SIZE 8
 
 // Injected in init
 volatile const u32 total_cpus;
@@ -89,6 +89,13 @@ static __always_inline void *write_target_data(void *data, s32 size)
     if (!data || data == NULL)
     {
         return NULL;
+    }
+
+    // Add padding to align to 8 bytes
+    if (size % 8 != 0) {
+        bpf_printk("adding padding to align to 8 bytes, current size: %d", size);
+        size += 8 - (size % 8);
+        bpf_printk("new size: %d", size);
     }
 
     u64 start = get_area_start();
