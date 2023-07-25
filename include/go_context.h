@@ -79,6 +79,7 @@ static __always_inline void track_running_span(void *contextContext, struct span
 
     char val[SPAN_CONTEXT_STRING_SIZE];
     span_context_to_w3c_string(sc, val);
+    bpf_printk("Tracked span: context ptr: %lx span: %s", contextContext, val);
 }
 
 static __always_inline void stop_tracking_span(struct span_context *sc, bool isRoot) {
