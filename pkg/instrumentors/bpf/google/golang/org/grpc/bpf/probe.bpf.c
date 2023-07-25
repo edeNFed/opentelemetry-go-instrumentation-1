@@ -133,6 +133,7 @@ int uprobe_ClientConn_Invoke(struct pt_regs *ctx)
     // Write event
     bpf_map_update_elem(&grpc_events, &key, &grpcReq, 0);
     track_running_span(context_ptr, &grpcReq.sc);
+    bpf_printk("grpc/client: started tracking span");
     return 0;
 }
 
@@ -151,6 +152,7 @@ int uprobe_ClientConn_Invoke_Returns(struct pt_regs *ctx)
     bpf_map_delete_elem(&grpc_events, &key);
 
     stop_tracking_span(&grpcReq.sc, (grpcReq.psc.TraceID[0] == 0));
+    bpf_printk("grpc/client: stopped tracking span, isRoot: %d", (grpcReq.psc.TraceID[0] == 0));
     return 0;
 }
 

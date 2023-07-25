@@ -19,6 +19,7 @@ type bpfHttpRequestT struct {
 	Method    [7]int8
 	Path      [100]int8
 	Sc        bpfSpanContext
+	Psc       bpfSpanContext
 	_         [5]byte
 }
 
@@ -76,6 +77,7 @@ type bpfProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfMapSpecs struct {
+	AllocMap         *ebpf.MapSpec `ebpf:"alloc_map"`
 	Events           *ebpf.MapSpec `ebpf:"events"`
 	HttpEvents       *ebpf.MapSpec `ebpf:"http_events"`
 	TrackedSpans     *ebpf.MapSpec `ebpf:"tracked_spans"`
@@ -101,6 +103,7 @@ func (o *bpfObjects) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfMaps struct {
+	AllocMap         *ebpf.Map `ebpf:"alloc_map"`
 	Events           *ebpf.Map `ebpf:"events"`
 	HttpEvents       *ebpf.Map `ebpf:"http_events"`
 	TrackedSpans     *ebpf.Map `ebpf:"tracked_spans"`
@@ -109,6 +112,7 @@ type bpfMaps struct {
 
 func (m *bpfMaps) Close() error {
 	return _BpfClose(
+		m.AllocMap,
 		m.Events,
 		m.HttpEvents,
 		m.TrackedSpans,
