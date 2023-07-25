@@ -27,12 +27,6 @@ import (
 	"go.opentelemetry.io/auto/pkg/process/ptrace"
 )
 
-const (
-	// The concurrent trace & span ID pairs lookup size in bytes. Currently set to 24mb.
-	// TODO: Review map size.
-	mapSize = 25165824
-)
-
 // TargetDetails are the details about a target function.
 type TargetDetails struct {
 	PID               int
@@ -99,14 +93,13 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 		}
 	}()
 	fd := -1
-	totalMapSize := uint64(os.Getpagesize() * runtime.NumCPU() * 10)
-	addr, err := program.Mmap(totalMapSize, uint64(fd))
+	addr, err := program.Mmap(mapSize, uint64(fd))
 	if err != nil {
 		log.Logger.Error(err, "Failed to mmap", "pid", pid)
 		return 0, err
 	}
 
-	err = program.Madvise(addr, totalMapSize)
+	err = program.Madvise(addr, mapSize)
 	if err != nil {
 		log.Logger.Error(err, "Failed to madvise", "pid", pid)
 		return 0, err
@@ -117,6 +110,7 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 
 // AllocateMemory allocates memory in the target process.
 func (a *Analyzer) AllocateMemory(target *TargetDetails) (*AllocationDetails, error) {
+	mapSize := uint64(os.Getpagesize() * runtime.NumCPU() * 10)
 	addr, err := a.remoteMmap(target.PID, mapSize)
 	if err != nil {
 		log.Logger.Error(err, "Failed to mmap")
