@@ -32,6 +32,15 @@ struct
     __uint(pinning, LIBBPF_PIN_BY_NAME);
 } alloc_map SEC(".maps");
 
+// Buffer for aligned data
+struct
+{
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(key_size, sizeof(u32));
+    __uint(value_size, MAX_BUFFER_SIZE);
+    __uint(max_entries, 1);
+} alignment_buffer SEC(".maps");
+
 static __always_inline u64 get_area_start()
 {
     s64 partition_size = (end_addr - start_addr) / total_cpus;
@@ -95,7 +104,12 @@ static __always_inline void *write_target_data(void *data, s32 size)
     if (size % 8 != 0) {
         bpf_printk("adding padding to align to 8 bytes, current size: %d", size);
         size += 8 - (size % 8);
-        bpf_printk("new size: %d", size);
+
+        // Write to the buffer
+        u32 key = 0;
+        bpf_printk("writing to alignment buffer, size: %d", size);
+        bpf_map_update_elem(&alignment_buffer, &key, data, BPF_ANY);
+        data = bpf_map_lookup_elem(&alignment_buffer, &key);
     }
 
     u64 start = get_area_start();
@@ -110,6 +124,7 @@ static __always_inline void *write_target_data(void *data, s32 size)
 
     void *target = (void *)start;
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
+    bpf_printk("final size: %d", size);
     long success = bpf_probe_write_user(target, data, size);
     if (success == 0)
     {
