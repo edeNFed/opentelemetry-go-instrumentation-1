@@ -108,8 +108,21 @@ static __always_inline void *write_target_data(void *data, s32 size)
         // Write to the buffer
         u32 key = 0;
         bpf_printk("writing to alignment buffer, size: %d", size);
-        bpf_map_update_elem(&alignment_buffer, &key, data, BPF_ANY);
-        data = bpf_map_lookup_elem(&alignment_buffer, &key);
+        void *buffer = bpf_map_lookup_elem(&alignment_buffer, &key);
+        if (buffer == NULL) {
+            bpf_printk("failed to get alignment buffer");
+            return NULL;
+        }
+
+        // Copy size bytes from data to buffer
+        size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
+        long success = bpf_probe_read(buffer, size, data);
+        if (success != 0) {
+            bpf_printk("failed to copy data to alignment buffer");
+            return NULL;
+        }
+
+        data = buffer;
     }
 
     u64 start = get_area_start();
