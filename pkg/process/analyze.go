@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/hashicorp/go-version"
 
@@ -98,13 +99,14 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 		}
 	}()
 	fd := -1
-	addr, err := program.Mmap(mapSize, uint64(fd))
+	totalMapSize := uint64(os.Getpagesize() * runtime.NumCPU() * 10)
+	addr, err := program.Mmap(totalMapSize, uint64(fd))
 	if err != nil {
 		log.Logger.Error(err, "Failed to mmap", "pid", pid)
 		return 0, err
 	}
 
-	err = program.Madvise(addr, mapSize)
+	err = program.Madvise(addr, totalMapSize)
 	if err != nil {
 		log.Logger.Error(err, "Failed to madvise", "pid", pid)
 		return 0, err
