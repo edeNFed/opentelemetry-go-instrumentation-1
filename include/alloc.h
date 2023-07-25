@@ -135,11 +135,16 @@ static __always_inline void *write_target_data(void *data, s32 size)
         start = get_area_start();
     }
 
+    // If reached end of page, go to the start again
+    if (start % 4096 != 0 && (start + size) % 4096 != 0 && (start / 4096) != ((start + size) / 4096)) {
+        bpf_printk("about to cross PAGE_SIZE !!!");
+    }
+
     void *target = (void *)start;
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
     bpf_printk("final size: %d", size);
     for (int i = 0; i < 10; i++) {
-        target += i;
+        target += 16 * i;
         long success = bpf_probe_write_user(target, data, size);
         if (success == 0)
         {
