@@ -70,6 +70,7 @@ static __always_inline u64 get_area_end(u64 start)
     u64 *end = (u64 *)bpf_map_lookup_elem(&alloc_map, &end_index);
     if (end == NULL || *end == 0)
     {
+        bpf_printk("Changing END address");
         u64 current_end_addr = start + partition_size;
         bpf_map_update_elem(&alloc_map, &end_index, &current_end_addr, BPF_ANY);
         return current_end_addr;
