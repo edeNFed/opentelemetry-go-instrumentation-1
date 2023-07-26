@@ -135,17 +135,18 @@ static __always_inline void *write_target_data(void *data, s32 size)
         start = get_area_start();
     }
 
-    // If reached end of page, go to the start again
-    if (start % 4096 != 0 && (start + size) % 4096 != 0 && (start / 4096) != ((start + size) / 4096)) {
-        bpf_printk("about to cross PAGE_SIZE !!!");
-    }
-
     void *target = (void *)start;
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
     bpf_printk("final size: %d", size);
     for (int i = 0; i < 10; i++) {
         target += 16 * i;
+        // Print current value of target before and after writing
+        void *current_value = NULL;
+        bpf_probe_read(&current_value, sizeof(void *), &target);
+        bpf_printk("current value of target before write: %lx", current_value);
         long success = bpf_probe_write_user(target, data, size);
+        bpf_probe_read(&current_value, sizeof(void *), &target);
+        bpf_printk("current value of target after write: %lx", current_value);
         if (success == 0)
         {
             s32 start_index = 0;
