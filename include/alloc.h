@@ -142,10 +142,10 @@ static __always_inline void *write_target_data(void *data, s32 size)
         target += 16 * i;
         // Print current value of target before and after writing
         u64 current_value = 0;
-        bpf_probe_read(&current_value, sizeof(u64), &target);
+        bpf_probe_read(&current_value, sizeof(u64), target);
         bpf_printk("current value of target before write: %lx", current_value);
         long success = bpf_probe_write_user(target, data, size);
-        bpf_probe_read(&current_value, sizeof(u64), &target);
+        bpf_probe_read(&current_value, sizeof(u64), target);
         bpf_printk("current value of target after write: %lx", current_value);
         if (success == 0)
         {
