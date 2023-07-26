@@ -139,7 +139,7 @@ static __always_inline void *write_target_data(void *data, s32 size)
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
     bpf_printk("final size: %d, end: %lx", size, end);
     u64 distance_from_end = end - start;
-    u64 diff = 4096 - (distance_from_start % 4096);
+    u64 diff = 4096 - (distance_from_end % 4096);
     if (diff == 0 || diff == 8) {
         bpf_printk("THIS SHOULD FAIL???");
     }
