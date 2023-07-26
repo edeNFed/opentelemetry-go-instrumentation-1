@@ -146,7 +146,7 @@ static __always_inline void *write_target_data(void *data, s32 size)
         bpf_printk("not enough space in current page, going to the next one");
         target += distance_from_next_page + 1;
     } else if (distance_from_next_page == 4096) {
-        bpf_printk("distance from next page is 4096, going to the next one")
+        bpf_printk("distance from next page is 4096, going to the next one");
         target += 1;
     }
 
