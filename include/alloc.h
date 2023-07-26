@@ -138,6 +138,11 @@ static __always_inline void *write_target_data(void *data, s32 size)
     void *target = (void *)start;
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
     bpf_printk("final size: %d", size);
+    u64 distance_from_start = start - start_addr;
+    u64 diff = 4096 - (distance_from_start % 4096);
+    if (diff == 0 || diff == 8) {
+        bpf_printk("THIS SHOULD FAIL???");
+    }
     long success = bpf_probe_write_user(target, data, size);
     if (success == 0)
     {
@@ -154,7 +159,6 @@ static __always_inline void *write_target_data(void *data, s32 size)
     }
     else
     {
-        u64 distance_from_start = start - start_addr;
         bpf_printk("failed to write to userspace, error code: %d, addr: %lx, start_distance: %d", success, target, distance_from_start);
     }
     return NULL;
