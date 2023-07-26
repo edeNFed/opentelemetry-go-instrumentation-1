@@ -138,33 +138,24 @@ static __always_inline void *write_target_data(void *data, s32 size)
     void *target = (void *)start;
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
     bpf_printk("final size: %d", size);
-    for (int i = 0; i < 10; i++) {
-        target += 16 * i;
-        // Print current value of target before and after writing
-        u64 current_value = 0;
-        bpf_probe_read(&current_value, sizeof(u64), target);
-        bpf_printk("current value of target before write: %lx", current_value);
-        long success = bpf_probe_write_user(target, data, size);
-        bpf_probe_read(&current_value, sizeof(u64), target);
-        bpf_printk("current value of target after write: %lx", current_value);
-        if (success == 0)
-        {
-            s32 start_index = 0;
-            u64 updated_start = start + size;
+    long success = bpf_probe_write_user(target, data, size);
+    if (success == 0)
+    {
+        s32 start_index = 0;
+        u64 updated_start = start + size;
 
-            // align updated_start to 8 bytes
-            if (updated_start % 8 != 0) {
-                updated_start += 8 - (updated_start % 8);
-            }
+        // align updated_start to 8 bytes
+//        if (updated_start % 8 != 0) {
+//            updated_start += 8 - (updated_start % 8);
+//        }
 
-            bpf_map_update_elem(&alloc_map, &start_index, &updated_start, BPF_ANY);
-            return target;
-        }
-        else
-        {
-            u64 distance = end - start;
-            bpf_printk("failed to write to userspace, error code: %d, addr: %lx, distance: %d", success, target, distance);
-        }
+        bpf_map_update_elem(&alloc_map, &start_index, &updated_start, BPF_ANY);
+        return target;
+    }
+    else
+    {
+        u64 distance_from_start = start - start_addr;
+        bpf_printk("failed to write to userspace, error code: %d, addr: %lx, start_distance: %d", success, target, distance_from_start);
     }
     return NULL;
 }
