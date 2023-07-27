@@ -92,7 +92,7 @@ static __always_inline void stop_tracking_span(struct span_context *sc, bool isR
 
         bpf_map_delete_elem(&tracked_spans, ctx);
     } else {
-        bpf_printk("stop_tracking_span: not root span %s", val")
+        bpf_printk("stop_tracking_span: not root span %s", val);
     }
     bpf_map_delete_elem(&tracked_spans_by_sc, sc);
 }
