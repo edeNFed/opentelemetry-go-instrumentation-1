@@ -76,23 +76,25 @@ static __always_inline struct span_context *get_parent_span_context(void *ctx) {
 static __always_inline void track_running_span(void *contextContext, struct span_context *sc) {
     bpf_map_update_elem(&tracked_spans, &contextContext, sc, BPF_ANY);
     bpf_map_update_elem(&tracked_spans_by_sc, sc, &contextContext, BPF_ANY);
+
+    char val[SPAN_CONTEXT_STRING_SIZE];
+    span_context_to_w3c_string(sc, val);
+    bpf_printk("Start tracking span: context.Context: %lx, w3c: %s", contextContext, val);
 }
 
 static __always_inline void stop_tracking_span(struct span_context *sc, bool isRoot) {
     char val[SPAN_CONTEXT_STRING_SIZE];
     span_context_to_w3c_string(sc, val);
+    bpf_printk("Stop tracking span: %s", val);
     if (isRoot)
     {
         void *ctx = bpf_map_lookup_elem(&tracked_spans_by_sc, sc);
         if (ctx == NULL)
         {
-            bpf_printk("stop_tracking_span: could not find context for span %s", val);
             return;
         }
 
         bpf_map_delete_elem(&tracked_spans, ctx);
-    } else {
-        bpf_printk("stop_tracking_span: not root span %s", val);
     }
     bpf_map_delete_elem(&tracked_spans_by_sc, sc);
 }

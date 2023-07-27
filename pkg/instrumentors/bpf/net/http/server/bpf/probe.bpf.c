@@ -234,7 +234,6 @@ int uprobe_ServerMux_ServeHTTP(struct pt_regs *ctx)
     // Write event
     bpf_map_update_elem(&http_events, &key, &httpReq, 0);
     track_running_span(req_ctx_ptr, &httpReq.sc);
-    bpf_printk("http/server: started tracking span");
     return 0;
 }
 
@@ -257,6 +256,5 @@ int uprobe_ServerMux_ServeHTTP_Returns(struct pt_regs *ctx)
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &httpReq, sizeof(httpReq));
     bpf_map_delete_elem(&http_events, &key);
     stop_tracking_span(&httpReq.sc, true);
-    bpf_printk("http/server: stopped tracking span");
     return 0;
 }

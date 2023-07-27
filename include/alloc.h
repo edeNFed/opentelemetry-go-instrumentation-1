@@ -70,7 +70,6 @@ static __always_inline u64 get_area_end(u64 start)
     u64 *end = (u64 *)bpf_map_lookup_elem(&alloc_map, &end_index);
     if (end == NULL || *end == 0)
     {
-        bpf_printk("Changing END address");
         u64 current_end_addr = start + partition_size;
         bpf_map_update_elem(&alloc_map, &end_index, &current_end_addr, BPF_ANY);
         return current_end_addr;
@@ -103,12 +102,10 @@ static __always_inline void *write_target_data(void *data, s32 size)
 
     // Add padding to align to 8 bytes
     if (size % 8 != 0) {
-        bpf_printk("adding padding to align to 8 bytes, current size: %d", size);
         size += 8 - (size % 8);
 
         // Write to the buffer
         u32 key = 0;
-        bpf_printk("writing to alignment buffer, size: %d", size);
         void *buffer = bpf_map_lookup_elem(&alignment_buffer, &key);
         if (buffer == NULL) {
             bpf_printk("failed to get alignment buffer");
@@ -138,15 +135,12 @@ static __always_inline void *write_target_data(void *data, s32 size)
 
     void *target = (void *)start;
     size = bound_number(size, MIN_BUFFER_SIZE, MAX_BUFFER_SIZE);
-    bpf_printk("final size: %d, end: %lx", size, end);
     u64 distance_from_start_addr = (u64)target - start_addr;
     u64 distance_from_next_page = 4096 - (distance_from_start_addr % 4096);
     if (distance_from_next_page < size)
     {
-        bpf_printk("not enough space in current page, going to the next one");
         target += distance_from_next_page + 1;
     } else if (distance_from_next_page == 4096) {
-        bpf_printk("distance from next page is 4096, going to the next one");
         target += 1;
     }
 
@@ -155,12 +149,6 @@ static __always_inline void *write_target_data(void *data, s32 size)
     {
         s32 start_index = 0;
         u64 updated_start = start + size;
-
-        // align updated_start to 8 bytes
-//        if (updated_start % 8 != 0) {
-//            updated_start += 8 - (updated_start % 8);
-//        }
-
         bpf_map_update_elem(&alloc_map, &start_index, &updated_start, BPF_ANY);
         return target;
     }

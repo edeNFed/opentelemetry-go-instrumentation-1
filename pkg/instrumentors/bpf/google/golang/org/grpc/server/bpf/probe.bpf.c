@@ -114,7 +114,6 @@ int uprobe_server_handleStream(struct pt_regs *ctx)
     // Write event
     bpf_map_update_elem(&grpc_events, &key, &grpcReq, 0);
     track_running_span(ctx_iface, &grpcReq.sc);
-    bpf_printk("grpc/server: started tracking span");
     return 0;
 }
 
@@ -134,7 +133,6 @@ int uprobe_server_handleStream_Returns(struct pt_regs *ctx)
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &grpcReq, sizeof(grpcReq));
     bpf_map_delete_elem(&grpc_events, &key);
     stop_tracking_span(&grpcReq.sc, true);
-    bpf_printk("grpc/server: stopped tracking span");
     return 0;
 }
 
