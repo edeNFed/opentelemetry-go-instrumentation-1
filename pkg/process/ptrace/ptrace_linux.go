@@ -16,6 +16,7 @@ package ptrace
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -222,7 +223,7 @@ func (p *TracedProgram) Mmap(length uint64, fd uint64) (uint64, error) {
 func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
 	advice := uint64(syscall.MADV_WILLNEED)
 	major, minor, _ := utils.GetLinuxKernelVersion()
-	fmt.Printf("############ Kernel version is: %d.%d", major, minor)
+	log.Printf("############ Kernel version is: %d.%d", major, minor)
 	if major >= 5 && minor >= 14 {
 		advice = syscall.MADV_WILLNEED | MADV_POPULATE_WRITE | MADV_POPULATE_READ
 	}
