@@ -150,7 +150,7 @@ int uprobe_ClientConn_Invoke_Returns(struct pt_regs *ctx)
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &grpcReq, sizeof(grpcReq));
     bpf_map_delete_elem(&grpc_events, &key);
 
-    stop_tracking_span(&grpcReq.sc, (grpcReq.psc.TraceID[0] == 0));
+    stop_tracking_span(&grpcReq.sc, true);
     return 0;
 }
 
