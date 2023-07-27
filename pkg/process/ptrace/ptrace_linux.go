@@ -27,6 +27,11 @@ import (
 
 const waitPidErrorMessage = "waitpid ret value: %d"
 
+const (
+	MADV_POPULATE_READ  = 0x16
+	MADV_POPULATE_WRITE = 0x17
+)
+
 var threadRetryLimit = 10
 
 // TracedProgram is a program traced by ptrace.
@@ -213,6 +218,6 @@ func (p *TracedProgram) Mmap(length uint64, fd uint64) (uint64, error) {
 
 // Madvise runs madvise syscall.
 func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
-	_, err := p.Syscall(syscall.SYS_MADVISE, addr, length, syscall.MADV_WILLNEED|syscall.MADV_HUGEPAGE, 0, 0, 0)
+	_, err := p.Syscall(syscall.SYS_MADVISE, addr, length, syscall.MADV_WILLNEED|syscall.MADV_HUGEPAGE|MADV_POPULATE_WRITE, 0, 0, 0)
 	return err
 }
