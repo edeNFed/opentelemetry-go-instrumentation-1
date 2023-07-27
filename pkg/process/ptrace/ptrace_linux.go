@@ -218,6 +218,6 @@ func (p *TracedProgram) Mmap(length uint64, fd uint64) (uint64, error) {
 
 // Madvise runs madvise syscall.
 func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
-	_, err := p.Syscall(syscall.SYS_MADVISE, addr, length, syscall.MADV_WILLNEED|syscall.MADV_SEQUENTIAL, 0, 0, 0)
+	_, err := p.Syscall(syscall.SYS_MADVISE, addr, length, syscall.MADV_WILLNEED|MADV_POPULATE_WRITE|MADV_POPULATE_READ, 0, 0, 0)
 	return err
 }
