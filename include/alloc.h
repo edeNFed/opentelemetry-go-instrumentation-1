@@ -140,8 +140,6 @@ static __always_inline void *write_target_data(void *data, s32 size)
     if (distance_from_next_page < size)
     {
         target += distance_from_next_page + 1;
-    } else if (distance_from_next_page == 4096) {
-        target += 1;
     }
 
     long success = bpf_probe_write_user(target, data, size);
