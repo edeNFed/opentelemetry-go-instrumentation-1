@@ -16,11 +16,12 @@ package ptrace
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"go.opentelemetry.io/auto/pkg/log"
 
 	"github.com/hashicorp/go-version"
 
@@ -230,8 +231,8 @@ func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
 	}
 
 	minVersion := version.Must(version.NewVersion("5.14"))
+	log.Logger.V(0).Info("Detected linux kernel version", "version", ver)
 	if ver.GreaterThanOrEqual(minVersion) {
-		log.Println("madvise: use MADV_POPULATE_WRITE and MADV_POPULATE_READ")
 		advice = syscall.MADV_WILLNEED | MADV_POPULATE_WRITE | MADV_POPULATE_READ
 	}
 
