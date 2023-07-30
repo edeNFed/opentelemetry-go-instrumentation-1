@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"log"
+	"strings"
 	"syscall"
 
 	"github.com/hashicorp/go-version"
@@ -20,6 +20,9 @@ func GetLinuxKernelVersion() (*version.Version, error) {
 	}
 
 	ver := string(buf[:])
-	log.Printf("##### Linux kernel version: %s\n", ver)
+	if strings.Contains(ver, "-") {
+		ver = strings.Split(ver, "-")[0]
+	}
+
 	return version.NewVersion(ver)
 }
