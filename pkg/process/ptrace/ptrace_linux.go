@@ -21,6 +21,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hashicorp/go-version"
+
 	"go.opentelemetry.io/auto/pkg/instrumentors/utils"
 
 	"github.com/go-logr/logr"
@@ -221,12 +223,16 @@ func (p *TracedProgram) Mmap(length uint64, fd uint64) (uint64, error) {
 // Madvise runs madvise syscall.
 func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
 	advice := uint64(syscall.MADV_WILLNEED)
-	major, minor, patch := utils.GetLinuxKernelVersion()
-	fmt.Printf("############ Kernel version is: %d.%d%d", major, minor, patch)
-	if major >= 5 && minor >= 1 && patch >= 4 {
+	ver, err := utils.GetLinuxKernelVersion()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	minVersion := version.Must(version.NewVersion("5.14"))
+	if ver.GreaterThanOrEqual(minVersion) {
 		advice = syscall.MADV_WILLNEED | MADV_POPULATE_WRITE | MADV_POPULATE_READ
 	}
 
-	_, err := p.Syscall(syscall.SYS_MADVISE, addr, length, advice, 0, 0, 0)
+	_, err = p.Syscall(syscall.SYS_MADVISE, addr, length, advice, 0, 0, 0)
 	return err
 }

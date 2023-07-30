@@ -15,7 +15,7 @@
 #include "utils.h"
 
 #define SPAN_CONTEXT_STRING_SIZE 55
-#define MAX_CONCURRENT_SPANS 100
+#define MAX_CONCURRENT_SPANS 1500
 
 struct span_context
 {
