@@ -110,7 +110,7 @@ func (a *Analyzer) remoteMmap(pid int, mapSize uint64) (uint64, error) {
 
 // AllocateMemory allocates memory in the target process.
 func (a *Analyzer) AllocateMemory(target *TargetDetails) (*AllocationDetails, error) {
-	mapSize := uint64(os.Getpagesize() * runtime.NumCPU() * 10)
+	mapSize := uint64(os.Getpagesize() * runtime.NumCPU() * 50)
 	addr, err := a.remoteMmap(target.PID, mapSize)
 	if err != nil {
 		log.Logger.Error(err, "Failed to mmap")

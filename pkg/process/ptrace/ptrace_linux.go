@@ -16,6 +16,7 @@ package ptrace
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -230,6 +231,7 @@ func (p *TracedProgram) Madvise(addr uint64, length uint64) error {
 
 	minVersion := version.Must(version.NewVersion("5.14"))
 	if ver.GreaterThanOrEqual(minVersion) {
+		log.Println("madvise: use MADV_POPULATE_WRITE and MADV_POPULATE_READ")
 		advice = syscall.MADV_WILLNEED | MADV_POPULATE_WRITE | MADV_POPULATE_READ
 	}
 
