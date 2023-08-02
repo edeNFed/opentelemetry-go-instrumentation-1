@@ -15,23 +15,34 @@
 package process
 
 import (
-	"errors"
+	"fmt"
 	"os"
 )
 
 // ExePathEnvVar is the environment variable key whose value points to the
 // instrumented executable.
-const ExePathEnvVar = "OTEL_GO_AUTO_TARGET_EXE"
+const (
+	ExePathEnvVar         = "OTEL_GO_AUTO_TARGET_EXE"
+	otelServiceNameEnvVar = "OTEL_SERVICE_NAME"
+)
 
 // TargetArgs are the binary target information.
 type TargetArgs struct {
-	ExePath string
+	ExecPath    string
+	ServiceName string
+	MonitorAll  bool
 }
 
 // Validate validates t and returns an error if not valid.
 func (t *TargetArgs) Validate() error {
-	if t.ExePath == "" {
-		return errors.New("target binary path not specified, please specify " + ExePathEnvVar + " env variable")
+	if t.MonitorAll {
+		return nil
+	}
+	if t.ExecPath == "" {
+		return fmt.Errorf("execPath is nil")
+	}
+	if t.ServiceName == "" {
+		return fmt.Errorf("serviceName is nil")
 	}
 
 	return nil
@@ -41,10 +52,15 @@ func (t *TargetArgs) Validate() error {
 // environment variable OTEL_GO_AUTO_TARGET_EXE.
 func ParseTargetArgs() *TargetArgs {
 	result := &TargetArgs{}
-
+	// We are reading only one variable for backwards compatibility.
 	val, exists := os.LookupEnv(ExePathEnvVar)
+
 	if exists {
-		result.ExePath = val
+		serviceName, _ := os.LookupEnv(otelServiceNameEnvVar)
+		result.ExecPath = val
+		result.ServiceName = serviceName
+	} else {
+		result.MonitorAll = true
 	}
 
 	return result
