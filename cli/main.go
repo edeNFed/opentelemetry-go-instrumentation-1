@@ -15,10 +15,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"go.opentelemetry.io/auto/pkg/errors"
 	"go.opentelemetry.io/auto/pkg/instrumentors"
@@ -54,6 +60,9 @@ func main() {
 		return
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go startMetricsServer(ctx)
+
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -61,6 +70,7 @@ func main() {
 		log.Logger.V(0).Info("Got SIGTERM, cleaning up..")
 		processAnalyzer.Close()
 		instManager.Close()
+		cancel()
 	}()
 
 	pid, err := processAnalyzer.DiscoverProcessID(target)
@@ -95,4 +105,31 @@ func main() {
 	if err != nil && err != errors.ErrInterrupted {
 		log.Logger.Error(err, "error while running instrumentors")
 	}
+}
+
+func startMetricsServer(ctx context.Context) {
+	// Create non-global registry.
+	reg := prometheus.NewRegistry()
+
+	// Add go runtime metrics and process collectors.
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+
+	// Shutdown on context cancellation.
+	server := &http.Server{Addr: ":8080"}
+
+	// Expose /metrics HTTP endpoint using the created custom registry.
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Logger.Error(err, "error while starting metrics server")
+		}
+	}()
+
+	<-ctx.Done()
+	log.Logger.V(0).Info("shutting down metrics server")
+	server.Shutdown(context.Background())
 }
