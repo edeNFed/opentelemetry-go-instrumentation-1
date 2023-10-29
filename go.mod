@@ -20,7 +20,7 @@ retract (
 require (
 	github.com/cilium/ebpf v0.11.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-logr/logr v1.2.4
+	github.com/go-logr/logr v1.3.0
 	github.com/go-logr/zapr v1.2.4
 	github.com/hashicorp/go-version v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.17
