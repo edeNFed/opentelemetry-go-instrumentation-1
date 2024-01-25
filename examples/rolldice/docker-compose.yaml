@@ -5,6 +5,14 @@ networks:
     name: roll
     driver: bridge
 
+volumes:
+  debugfs:
+    driver: local
+    driver_opts:
+      type: debugfs
+      device: debugfs
+      o: uid=0,gid=0,mode=755
+
 services:
   rolldice:
     depends_on:
@@ -32,6 +40,7 @@ services:
       - OTEL_PROPAGATORS=tracecontext,baggage
     volumes:
       - /proc:/host/proc
+      - debugfs:/sys/kernel/debug
 
   jaeger:
     image: jaegertracing/all-in-one:latest
