@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"sync"
 
+	"go.opentelemetry.io/auto/internal/pkg/instrumentation/utils/lockdown"
+
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
 	"github.com/go-logr/logr"
@@ -47,6 +49,7 @@ type Manager struct {
 	globalImpl     bool
 	wg             sync.WaitGroup
 	closingErrors  chan error
+	lockdown       *lockdown.Lockdown
 }
 
 // NewManager returns a new [Manager].
@@ -162,6 +165,7 @@ func (m *Manager) load(target *process.TargetDetails) error {
 		return err
 	}
 
+	m.lockdown = lockdown.Load(m.logger)
 	exe, err := link.OpenExecutable(fmt.Sprintf("/proc/%d/exe", target.PID))
 	if err != nil {
 		return err
@@ -199,6 +203,10 @@ func (m *Manager) cleanup(target *process.TargetDetails) error {
 	close(m.incomingEvents)
 	for _, i := range m.probes {
 		err = errors.Join(err, i.Close())
+	}
+
+	if m.lockdown != nil {
+		m.lockdown.Close()
 	}
 
 	m.logger.Info("Cleaning bpffs")

@@ -36,9 +36,26 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) rolldice(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) rolldice(w http.ResponseWriter, r *http.Request) {
 	n := s.rand.Intn(6) + 1
 	logger.Info("rolldice called", zap.Int("dice", n))
+
+	// Make an HTTP request with context to public api
+	req, err := http.NewRequestWithContext(r.Context(), "GET", "https://api.github.com", nil)
+	if err != nil {
+		logger.Error("error creating request", zap.Error(err))
+		return
+	}
+
+	// Make the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("error making request", zap.Error(err))
+		return
+	}
+	defer resp.Body.Close()
+
 	fmt.Fprintf(w, "%v", n)
 }
 

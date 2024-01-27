@@ -53,7 +53,8 @@ type bpfSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfProgramSpecs struct {
-	LockdownLsm *ebpf.ProgramSpec `ebpf:"lockdown_lsm"`
+	LockedDown *ebpf.ProgramSpec `ebpf:"locked_down"`
+	LsmBpf     *ebpf.ProgramSpec `ebpf:"lsm_bpf"`
 }
 
 // bpfMapSpecs contains maps before they are loaded into the kernel.
@@ -91,12 +92,14 @@ func (m *bpfMaps) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfPrograms struct {
-	LockdownLsm *ebpf.Program `ebpf:"lockdown_lsm"`
+	LockedDown *ebpf.Program `ebpf:"locked_down"`
+	LsmBpf     *ebpf.Program `ebpf:"lsm_bpf"`
 }
 
 func (p *bpfPrograms) Close() error {
 	return _BpfClose(
-		p.LockdownLsm,
+		p.LockedDown,
+		p.LsmBpf,
 	)
 }
 

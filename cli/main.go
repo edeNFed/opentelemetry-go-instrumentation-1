@@ -24,8 +24,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"go.opentelemetry.io/auto/internal/pkg/instrumentation/utils/lockdown"
-
 	"github.com/go-logr/logr"
 	"github.com/go-logr/stdr"
 	"github.com/go-logr/zapr"
@@ -76,7 +74,6 @@ func main() {
 	flag.Parse()
 
 	logger := newLogger().WithName("go.opentelemetry.io/auto")
-	lockdown.Load(logger.WithName("lockdown"))
 
 	// Trap Ctrl+C and SIGTERM and call cancel on the context.
 	ctx, cancel := context.WithCancel(context.Background())

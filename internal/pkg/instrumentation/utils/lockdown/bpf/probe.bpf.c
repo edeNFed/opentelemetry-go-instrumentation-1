@@ -4,42 +4,16 @@
 
 char __license[] SEC("license") = "Dual MIT/GPL";
 
-enum lockdown_reason {
-	LOCKDOWN_NONE,
-	LOCKDOWN_MODULE_SIGNATURE,
-	LOCKDOWN_DEV_MEM,
-	LOCKDOWN_EFI_TEST,
-	LOCKDOWN_KEXEC,
-	LOCKDOWN_HIBERNATION,
-	LOCKDOWN_PCI_ACCESS,
-	LOCKDOWN_IOPORT,
-	LOCKDOWN_MSR,
-	LOCKDOWN_ACPI_TABLES,
-	LOCKDOWN_DEVICE_TREE,
-	LOCKDOWN_PCMCIA_CIS,
-	LOCKDOWN_TIOCSSERIAL,
-	LOCKDOWN_MODULE_PARAMETERS,
-	LOCKDOWN_MMIOTRACE,
-	LOCKDOWN_DEBUGFS,
-	LOCKDOWN_XMON_WR,
-	LOCKDOWN_BPF_WRITE_USER,
-	LOCKDOWN_DBG_WRITE_KERNEL,
-	LOCKDOWN_RTAS_ERROR_INJECTION,
-	LOCKDOWN_INTEGRITY_MAX,
-	LOCKDOWN_KCORE,
-	LOCKDOWN_KPROBES,
-	LOCKDOWN_BPF_READ_KERNEL,
-	LOCKDOWN_DBG_READ_KERNEL,
-	LOCKDOWN_PERF,
-	LOCKDOWN_TRACEFS,
-	LOCKDOWN_XMON_RW,
-	LOCKDOWN_XFRM_SECRET,
-	LOCKDOWN_CONFIDENTIALITY_MAX,
-};
+SEC("lsm/bpf")
+int BPF_PROG(lsm_bpf, int cmd)
+{
+    bpf_printk("lsm_bpf: cmd=%d", cmd);
+    return 0;
+}
 
 SEC("lsm/locked_down")
-int BPF_PROG(lockdown_lsm, enum lockdown_reason what, int ret)
+int BPF_PROG(locked_down, enum lockdown_reason what, int ret)
 {
-    bpf_printk("locked_down: %d\n", what);
+    bpf_printk("locked_down: what=%d ret=%d\n", what, ret);
     return 0;
 }
